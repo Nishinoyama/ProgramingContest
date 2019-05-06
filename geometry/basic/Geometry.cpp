@@ -39,6 +39,7 @@ struct L : public vector<P> {
 
 // 単純多角形 PolyGon
 typedef vector<P> G;
+typedef G Polygon;
 
 // 円 cirlce
 struct C {
@@ -106,6 +107,15 @@ double distanceSS( const L &s, const L &t ){
                 min( distanceSP(t,s[0]), distanceSP(t,s[1]) ) );
 }
 // }}}
+// 多角形面積 G {{{
+double area( const Polygon &P ){
+    double A = 0.0;
+    for( int i = 0; i < P.size(); i++ ){
+        A += cross( P[i], P[(i+1)%P.size()] );
+    }
+    return A;
+}
+// }}}
 // imagePointDescription(点表示) {{{ 
 void imagePointDescription( const vector<P> &p, double scale = 1 ){
     int here[51][51] = {};
@@ -137,29 +147,21 @@ void imagePointDescription( const vector<P> &p, double scale = 1 ){
 int main() {
 
     double a,b,c,d;
-    G points(4);
+    G pol;
 
 
     int q;
     cin >> q;
 
     while(q--){
-        cin >> a >> b >> c >> d;
-        P p1(a,b);
-        P p2(c,d);
-        cin >> a >> b >> c >> d;
-        P p3(a,b);
-        P p4(c,d);
-        L l1(p1,p2);
-        L l2(p3,p4);
-        points[0] = p1;
-        points[1] = p2;
-        points[2] = p3;
-        points[3] = p4;
-        imagePointDescription(points, 4 );
-        printf ("%1.10lf\n", distanceSS(l1,l2) );
+        cin >> a >> b;
+        P p(a,b);
+        pol.push_back(p);
         // printf ("%1.10lf %1.10lf\n", real(x), imag(x) );
     }
+    imagePointDescription(pol,1);
+
+    printf ("%.1lf\n", area(pol)/2.0);
 
 
     return 0;
