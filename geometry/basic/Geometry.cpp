@@ -11,7 +11,7 @@ const double INF = 1e12;
 typedef complex<double> Point; //複素数で平面定義
 typedef Point P;
 
-// system // {{{
+// system {{{
 // オペレーター< を定義、後々楽
 namespace std{
     bool operator < ( const P& a, const P& b) {
@@ -28,7 +28,7 @@ double dot( const P& a, const P& b ){
     return real(conj(a)*b);
 }
 // }}}
-// Line L vector<P> PolyGon G vector<P> Circle C(P,int rad) // {{{
+// Line L vector<P> PolyGon G vector<P> Circle C(P,int rad) {{{
 // 直線 Line
 // 線分 Segment
 struct L : public vector<P> {
@@ -46,7 +46,7 @@ struct C {
     C(const P &p, double r ) : p(p), r(r) {}
 };
 // }}}
-// counter clockwise // {{{
+// counter clockwise {{{
 //
 int ccw( P a, P b, P c ){
     b -= a; c -= a;
@@ -56,7 +56,7 @@ int ccw( P a, P b, P c ){
     if( norm(b) < norm(c)) return -2; //online_front
     return 0; // on_segment
 } //}}}
-// 交点判定 交点座標 LSPtoLSP // {{{
+// 交点判定 交点座標 LSPtoLSP {{{
 bool intersectLL( const L &l, const L &m ){
     return abs( cross(l[1]-l[0], m[1]-m[0]) ) > EPS || // cross(l,m) != 0 <-> not paralell
            abs( cross(l[1]-l[0], m[0]-l[0]) ) < EPS;   // cross(l,(m-l)) == 0 <-> same line
@@ -87,7 +87,7 @@ P crossPoint( const L &l, const L &m ){
     return m[0] + B / A * ( m[1] - m[0] );
 }
 // }}}
-// 射影 反射 距離 LSPtoLSP // {{{
+// 射影 反射 距離 LSPtoLSP  {{{
 P projection( const L &l, const P &p ){
     double t = dot( p-l[0], l[0]-l[1] ) / norm( l[0]-l[1] );
     return l[0] + t*(l[0]-l[1]);
@@ -95,33 +95,25 @@ P projection( const L &l, const P &p ){
 P reflection( const L &l, const P &p ){
     return p + 2.0*( projection(l,p) - p );
 }
-// bool intersectLL( const L &l, const L &m ){
-//     return abs( cross(l[1]-l[0], m[1]-m[0]) ) > EPS || // cross(l,m) != 0 <-> not paralell
-//            abs( cross(l[1]-l[0], m[0]-l[0]) ) < EPS;   // cross(l,(m-l)) == 0 <-> same line
-// }
-// bool intersectLS( const L &l, const L &s ){
-//     return cross( l[1]-l[0], s[0]-l[0] ) *
-//            cross( l[1]-l[0], s[1]-l[0] ) < EPS;
-// }
-// bool intersectLP( const L &l, const P &p ){
-//     return abs( cross(l[0]-p, l[1]-p) );
-// }
-// bool intersectSS( const L &s, const L &t ){
-//     return ccw(s[0],s[1],t[0])*ccw(s[0],s[1],t[1]) <= 0 &&
-//            ccw(t[0],t[1],s[0])*ccw(t[0],t[1],s[1]) <= 0;
-// }
-// bool intersectSP( const L &s, const P &p ){
-//     return abs( s[0]-p )+abs( s[1]-p )-abs(s[1]-s[0]) < EPS;
-// }
+double distanceSP( const L &s, const P &p ){
+    const P r = projection(s,p);
+    if( intersectSP(s,r) ) return abs(r-p);
+    else return min( abs(s[0] - p), abs(s[1] - p) );
+}
+double distanceSS( const L &s, const L &t ){
+    if( intersectSS(s,t) ) return 0.0;
+    return min( min( distanceSP(s,t[0]), distanceSP(s,t[1]) ),
+                min( distanceSP(t,s[0]), distanceSP(t,s[1]) ) );
+}
 // }}}
-// imagePointDescription(点表示) // {{{ 
-void imagePointDescription( const vector<P> &p ){
+// imagePointDescription(点表示) {{{ 
+void imagePointDescription( const vector<P> &p, double scale = 1 ){
     int here[51][51] = {};
     int i = 0;
     for( P t : p ){
         i++;
-        int y = round(imag(t)-EPS);
-        int x = round(real(t)-EPS);
+        int y = round(imag(t)/scale);
+        int x = round(real(t)/scale);
         if( abs(y) > 25 ) continue;
         if( abs(x) > 25 ) continue;
         here[y+25][x+25] = i;
@@ -139,12 +131,13 @@ void imagePointDescription( const vector<P> &p ){
         printf ("\n");
     }
 
-} // }}}
+}
+// }}}
 
 int main() {
 
     double a,b,c,d;
-    G points(5);
+    G points(4);
 
 
     int q;
@@ -159,14 +152,13 @@ int main() {
         P p4(c,d);
         L l1(p1,p2);
         L l2(p3,p4);
-        P x = crossPoint(l1,l2);
         points[0] = p1;
         points[1] = p2;
         points[2] = p3;
         points[3] = p4;
-        points[4] = x;
-        imagePointDescription(points);
-        printf ("%1.10lf %1.10lf\n", real(x), imag(x) );
+        imagePointDescription(points, 4 );
+        printf ("%1.10lf\n", distanceSS(l1,l2) );
+        // printf ("%1.10lf %1.10lf\n", real(x), imag(x) );
     }
 
 
