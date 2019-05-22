@@ -3,13 +3,12 @@ using namespace std;
 typedef long long unsigned int ll;
 
 // 参考サイト
-// 前原 貴憲
 // http://www.prefield.com/algorithm/index.html
 
 const double EPS = 1e-8;
 const double INF = 1e12;
 typedef complex<double> Point; //複素数で平面定義
-typedef Point P;
+using P = Point ;
 
 // system {{{
 // オペレーター< を定義、後々楽
@@ -28,24 +27,63 @@ double dot( const P& a, const P& b ){
     return real(conj(a)*b);
 }
 // }}}
-// Line L vector<P> PolyGon G vector<P> Circle C(P,int rad) {{{
-// 直線 Line
-// 線分 Segment
+// Line L:vector<P> Polygon G:vector<P> Circle C(P,int rad) {{{
+// 直線 Line 線分 Segment {{{
 struct L : public vector<P> {
     L(const P &a, const P &b ){
         push_back(a); push_back(b);
     }
 };
-
-// 単純多角形 PolyGon
-typedef vector<P> G;
-typedef G Polygon;
-
-// 円 cirlce
+using Line = L;
+// }}}
+// 単純多角形 Polygon {{{
+struct G : public vector<P> {
+    Point curr( int i ){
+        return *(begin()+i);
+    }
+    Point next( int i ){
+        return *(begin()+(i+1)%size());
+    }
+    Point prev( int i ){
+        i += size();
+        return *(begin()+(i-1)%size());
+    }
+    double area2(){
+        double A = 0.0;
+        for( int i = 0; i < size(); i++ ){
+            A += cross( curr(i),next(i) );
+        }
+        return A;
+    }
+    int contains( P &p ){
+        bool in = false;
+        for( int i = 0; i < size(); i++ ){
+            Point a = curr(i) - p, b = next(i) - p;
+            if( imag(a) > imag(b) ) {
+                Point c = a;
+                a = b; b = c;
+            }
+            if( imag(a) <= 0 && 0 < imag(b))
+                if( cross(a,b) < 0) in = !in;
+            if( cross(a,b) == 0 && dot(a, b) <= 0 ) return 1;
+        }
+        return in*2;
+    }
+    Point& operator []( size_t i ){
+        return *(begin()+i%size());
+    }
+    const Point& operator []( size_t i ) const {
+        return *(begin()+i%size());
+    }
+};
+using Polygon = G;
+//}}}
+// 円 cirlce {{{
 struct C {
     P p; double r;
     C(const P &p, double r ) : p(p), r(r) {}
 };
+// }}}
 // }}}
 // counter clockwise {{{
 //
@@ -108,12 +146,104 @@ double distanceSS( const L &s, const L &t ){
 }
 // }}}
 // 多角形面積 G {{{
-double area( const Polygon &P ){
+double area2( const Polygon &P ){
     double A = 0.0;
     for( int i = 0; i < P.size(); i++ ){
         A += cross( P[i], P[(i+1)%P.size()] );
     }
     return A;
+}
+// }}}
+// 凸包 {{{
+Polygon convexHull( Polygon pl ){
+    int n = pl.size(), k=0;
+    sort( pl.begin(), pl.end() , []( Point& a, Point& b ) -> bool {
+        return imag(a) != imag(b) ? imag(a) < imag(b) : real(a) < real(b);
+    } );
+    // sort( pl.begin(), pl.end());
+    Polygon ch;
+    ch.resize(2*n);
+    for( int i = 0; i < n; ch[k++] = pl[i++] )
+        while( k >= 2 && ccw( ch[k-2], ch[k-1], pl[i] ) == -1 )k--;
+    for( int i = n-2, t = k+1; i >= 0; ch[k++] = pl[i--] )
+        while( k >= t && ccw( ch[k-2], ch[k-1], pl[i] ) == -1 )k--;
+    ch.resize(k-1);
+    return ch;
+
+}
+// }}}
+// 凸多角形の直径 {{{
+double convexDiameter( const Polygon &pt ){
+    const int n = pt.size();
+    int is = 0, js = 0;
+    for (int i = 1; i < n; i++){
+        if( imag(pt[i]) > imag(pt[is]) ) is = i;
+        if( imag(pt[i]) < imag(pt[js]) ) js = i;
+    }
+    double maxd = norm( pt[is] - pt[js] );
+    int i,maxi,j,maxj;
+    i = maxi = is;
+    j = maxj = js;
+    do{
+        Point pi = pt[i+1] - pt[i];
+        Point pj = pt[j+1] - pt[j];
+        if( cross(pi , pj) >= -EPS ) j++;
+        else i++;
+        i %= n;
+        j %= n;
+        if( norm( pt[i] - pt[j] ) > maxd ){
+            maxd = norm( pt[i] - pt[j] );
+            maxi = i; maxj = j;
+        }
+    } while ( i != is || j != js );
+    return maxd; /* farthest pair is (maxi, maxj). */
+}
+// }}}
+// 凸多角形の切断 {{{
+pair<Polygon,Polygon> convexCut( const Polygon& P , const Line &l ){
+    pair<Polygon, Polygon> Q;
+    // Q.first:LeftRemain
+    // Q.right:RightRemain
+    for( int i = 0; i < P.size(); i++ ){
+        Point A = P[i]; Point B = P[i+1];
+        if( ccw( l[0], l[1], A ) != -1 ) Q.first.push_back(A);
+        else Q.second.push_back(A);
+        if( ccw( l[0], l[1], A ) * ccw( l[0], l[1], B ) < 0)
+            A = crossPoint( Line(A,B), l ),
+            Q.first.push_back(A),
+            Q.second.push_back(A);
+    }
+    return Q;
+}
+// }}}
+// 最近点 {{{
+double closestPair( vector<P> p, int n ){
+    if( n <= 1 ) return INF;
+    int m = n/2;
+    double x = real(p[m]);
+    vector<P> left(m);
+    vector<P> right(n-m);
+    for( int i = 0; i < m; i++ ) left[i] = p[i];
+    for( int i = m; i < n; i++ ) right[i] = p[i];
+    double d = min( closestPair(left, m), closestPair(right, n-m ));
+    printf ("%d\n", n );
+    sort( p.begin(), p.end(), []( Point& a, Point& b ) -> bool {
+        return imag(a) != imag(b) ? imag(a) < imag(b) : real(a) < real(b);
+    } );
+
+    vector<P> b;
+
+    for( int i = 0; i < n; i++ ){
+        if( abs( p[i] - x ) >= d  ) continue;
+        if( b.size() )
+        for (int j = b.size()-1; j >= 0; j-- ){
+            if( imag(p[i] - b[i]) >= d ) break;
+            d = min( d, sqrt( norm( p[i] - b[i] ) ));
+        }
+        b.push_back( p[i] );
+    }
+
+    return d;
 }
 // }}}
 // imagePointDescription(点表示) {{{ 
@@ -147,21 +277,23 @@ void imagePointDescription( const vector<P> &p, double scale = 1 ){
 int main() {
 
     double a,b,c,d;
+
+
     G pol;
-
-
     int q;
-    cin >> q;
-
-    while(q--){
+    int n;
+    cin >> n;
+    while(n--){
         cin >> a >> b;
         P p(a,b);
         pol.push_back(p);
         // printf ("%1.10lf %1.10lf\n", real(x), imag(x) );
     }
-    imagePointDescription(pol,1);
 
-    printf ("%.1lf\n", area(pol)/2.0);
+    sort(pol.begin(),pol.end());
+    imagePointDescription(pol,1);
+    double ans = closestPair(pol,pol.size());
+    printf ("%1.13lf\n", sqrt( convexDiameter(pol) ) );
 
 
     return 0;
