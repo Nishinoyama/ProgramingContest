@@ -44,7 +44,7 @@ using vll = vector<pll>;
 // }}} 1
 // }}} 0
 
-const long long int mod = 9982443531000000007ll;
+const long long int mod = 1000000007;
 
 // PowMod( base, index, modulo) return base ** index % modulo {{{
 // PowMod = base ** index % mod ( natural numbers )
@@ -116,18 +116,37 @@ int main() {
 
     int N;
     Scd(N);
-    vi a(N);
-    Rep(i,N) Scd(a[i]);
 
-    vector<modint> dp();
-    int l = 0, r = 2000*N+1;
-    int c;
-    // [l,r)
-    while( r-l>1 ){
-        c = (r+l)/2;
-        dp.assign(c+1,0);
-        c[0] = 1;
+    vector<modint> dp(N+N+5,0);
+    modint infty = 0;
+    dp[0] = 1;
+    dp[1] = -1;
+
+    // [0,N-2]
+    Rep(i,N-1){
+        dp[i+1] += dp[i]*2;
+        dp[i+2] -= dp[i];
+        dp[i+3] += dp[i];
+        dp[i+2+N] -= dp[i];
+        infty += dp[i]*(N-1)*(N-1);
     }
+
+    // N-1
+    infty += dp[N-1]*N;
+    dp[N] += dp[N-1];
+
+    // [N,2N+3]
+    Rep(i,N+4){
+        infty += dp[N+i];
+        dp[N+1+i] += dp[N+i];
+    }
+
+    for( modint t : dp ){
+        // printf ("%lld\n", t );
+    }
+
+    printf ("%lld\n", infty );
+
 
     return 0;
 }

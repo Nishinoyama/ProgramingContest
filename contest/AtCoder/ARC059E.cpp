@@ -44,7 +44,7 @@ using vll = vector<pll>;
 // }}} 1
 // }}} 0
 
-const long long int mod = 9982443531000000007ll;
+const long long int mod = 1000000007;
 
 // PowMod( base, index, modulo) return base ** index % modulo {{{
 // PowMod = base ** index % mod ( natural numbers )
@@ -114,20 +114,43 @@ struct modint{
 
 int main() {
 
-    int N;
-    Scd(N);
-    vi a(N);
+    int N,C;
+    Scd2(N,C);
+    vi a(N),b(N);
     Rep(i,N) Scd(a[i]);
-
-    vector<modint> dp();
-    int l = 0, r = 2000*N+1;
-    int c;
-    // [l,r)
-    while( r-l>1 ){
-        c = (r+l)/2;
-        dp.assign(c+1,0);
-        c[0] = 1;
+    Rep(i,N) Scd(b[i]);
+    vector<vector<modint>> c(N,vector<modint>(C+1));
+    vector<vector<modint>> ap(401,vector<modint>(C+1,1));
+    Repe(ai,401,1){
+        Rep(ci,C){
+            ap[ai][ci+1] = ap[ai][ci]*ai;
+        }
     }
+    Rep(ni,N){
+        Rep(ci,C+1){
+            Repe(ai,b[ni]+1,a[ni]){
+                c[ni][ci] += ap[ai][ci];
+            }
+        }
+    }
+
+    vector<modint> dp(C+1);
+    vector<modint> dpq(C+1);
+    dp[0] = 1;
+
+    Rep(ni,N){
+        Rep(ci,C+1){
+            Repe(cci,C+1,ci){
+                dpq[cci] += dp[ci]*(c[ni][cci-ci]);
+            }
+        }
+        Rep(ci,C+1){
+            dp[ci] = dpq[ci];
+            dpq[ci] = 0;
+        }
+    }
+
+    printf ("%lld\n", dp[C] );
 
     return 0;
 }

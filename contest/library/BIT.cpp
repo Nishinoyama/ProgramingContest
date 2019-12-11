@@ -35,46 +35,33 @@ typedef long long unsigned int ll;
 
 // }}} 1
 
-// {{{ BinaryIndexedTree
-
-// {{{実装
+// {{{ BIT
 struct BIT{
-    int data[200000];
+    vector<int> data;
     int leng;
     BIT( int n ){
         init(n);
     }
     void init(int n){
-        this->leng = n;
+        leng = n;
+        data.assign(n,0);
         for(int i = 0; i < n; i++ ){
-            this->data[i] = 0;
+            data[i] = 0;
         }
     }
     int sum(int i){
         int s = 0;
         for( ; i>0; i -= i & -i ){
-            s += this->data[i];
+            s += data[i];
         }
         return s;
     }
     void add(int i, int x){
-        for( ; i<=this->leng ; i += i & -i ){
-            this->data[i] += x;
+        for( ; i<=leng ; i += i & -i ){
+            data[i] += x;
         }
     }
 };
-// }}}
-
-// {{{ 説明
-/*
-BIT.data[1,n] : data
-BIT.leng : quantity of data
-BIT.init(n) : YES
-BIT.sum(a) : sum of data[1,a]
-BIT.add(i,x) : add data[i] with x
-*/
-// }}}
-
 // }}}
 
 int main() {
